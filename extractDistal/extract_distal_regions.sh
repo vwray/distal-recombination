@@ -4,11 +4,11 @@ genomeDir=$1
 #second argument is the output directory
 outputDir=$2
 #third argument is the script directory
-$scriptDir=$3
+scriptDir=$3
 
 cd $genomeDir
 #loop through genomes
-for genomeName in `ls -d HG*`; do
+for genomeName in `ls -d HG* NA* | grep -v ".tar"`; do
   echo $genomeName
   cd $genomeDir/$genomeName/verkko-hi-c
   #get haplotypes that contain rdna
@@ -26,7 +26,7 @@ for genomeName in `ls -d HG*`; do
         #find hapName in assembly file
         python $scriptDir/find_distal_bits.py -f "$genomeDir/$genomeName/verkko-hi-c/assembly.fasta" -a "$hapName" -r 'True' -o "$outputDir/distal_${genomeName}_${chrLabel}_${hapName}.txt"
         # add to fasta file
-        echo ">${genomeName}_${chrLabel}_${hapName}" >> /home/wrayva/output/distalbits.fasta
+        echo ">${genomeName}_${chrLabel}_${hapName}" >> $outputDir/distalbits.fasta
         cat "$outputDir/distal_${genomeName}_${chrLabel}_${hapName}.txt" >> $outputDir/distalbits.fasta
       fi
       if [[ `echo $mashmapLine | cut -d ' ' -f5` == '+' ]]; then
