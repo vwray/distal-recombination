@@ -41,6 +41,35 @@ haplotype2-0000156	98725104	96170000	96510000	-	chr14	101161492	1309234	1649139	
 *Once we have the chromosome label and orientation, we call the python script [find_distal_bits](extractDistal/find_distal_bits.py) to reverse complement a haplotype if necessary so that the distal end on the p arm is first, find the 1Mb gap that indicates the rDNA, and extract the region before the gap. Gaps are indicated in the fasta file with 'N' characters.
 *Finally, we write each distal region to a fasta file with a sequence identifier containing the genome name, chromosome label, and haplotype name.
 
+## Trimming rdna
+
+## Trimming telomere
+The below command runs over fasta files in a directory, finds the position where the telomere ends on each sequence, and trims the sequence from this position.
+```sh
+module load seqtk
+for file in `ls rdna_trim_distal_*fna`; do
+    #Find the position of telomere
+    seqtk telo $file > /data/wrayva/output/seqtk_telo/output_${file%.fna}.txt
+    teloPosition=$(cat /data/wrayva/output/seqtk_telo/output_${file%.fna}.txt | head -n1 | awk -F$'\t' '{print $3}')
+    echo $teloPosition
+    #trim the telomere from the sequence
+    seqtk trimfq -b $teloPosition $file > /data/wrayva/output/trim_telo/trim_telo_${file%.fna}.fna
+done
+```
+
 # Aligning Distal Regions
+## parsnp
+The below command is used to align each distal bit fasta sequence to the distal bit of chromosome 15 in CHM13 using `parsnp`.
+```sh
+parsnp -r /data/Phillippy2/projects/acro_comparisons/refs/CHM13/distal_bits/chr15.distal.fa -d /data/wrayva/output/sequences/ -o /data/wrayva/output/parsnp-out
+```
+
+## wfmash
+
+The below command is used to align each distal bit fasta sequence to the distal bit of chromosome 15 in CHM13 using `wfmash`.
+```sh
+module load wfmash
+wfmash --nosplit -s 100k /data/wrayva/output/chm13ref/trim_telo_trim_rdna_chr15.distal.fa /data/wrayva/output/wfmash_on_trimmed_to_chm13/query.fa > /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln.paf
+```
 
 # Building Phylogenetic Trees
