@@ -37,39 +37,34 @@ haplotype2-0000156	98725104	93940000	94170000	-	chr15	99753195	5143916	5374092	3
 haplotype2-0000156	98725104	94180000	94440000	-	chr15	99753195	4874142	5133964	40260000	40	0.999889	kc:f:0.840008
 haplotype2-0000156	98725104	96170000	96510000	-	chr14	101161492	1309234	1649139	39340000	34	0.999598	kc:f:1.09141
 ```
-*The rows are sorted in ascending order of the third column (the start positions), and we assume that the first row is the q arm if there is a '-' in the 5th column. We may switch this logic to look instead for the largest segment (difference between fourth and third columns). This is also the row we use to get the chromosome label (6th column).
+* The rows are sorted in ascending order of the third column (the start positions), and we assume that the first row is the q arm if there is a '-' in the 5th column. We may switch this logic to look instead for the largest segment (difference between fourth and third columns). This is also the row we use to get the chromosome label (6th column).
 *Once we have the chromosome label and orientation, we call the python script [find_distal_bits](extractDistal/find_distal_bits.py) to reverse complement a haplotype if necessary so that the distal end on the p arm is first, find the 1Mb gap that indicates the rDNA, and extract the region before the gap. Gaps are indicated in the fasta file with 'N' characters.
-*Finally, we write each distal region to a fasta file with a sequence identifier containing the genome name, chromosome label, and haplotype name.
+* Finally, we write each distal region to a fasta file with a sequence identifier containing the genome name, chromosome label, and haplotype name.
+* Note: I have verified that this chromosome assignment gives the same assignment as taking a consensus on the q-arm, as done in `analysis/reOrient*fasta`.
 
-## Trimming rdna
-
-## Trimming telomere
-The below command runs over fasta files in a directory, finds the position where the telomere ends on each sequence, and trims the sequence from this position.
+# Align distal bits to find intra-satellite segmental duplications
+The following command is used to run minimap with the reference as CHM13 chromosome 22 with the satellites masked, and the query as a fasta file containing all the distal bit strings as extracted above, with potentially pieces of telomere and rDNA still intact on the ends. We are using chromosome 22 because it is the longest, so most likely to align with the most pieces. This overall alignment will allow us to find the positions of where each seg dup starts and ends in each haplotype in the query fasta file.
 ```sh
-module load seqtk
-for file in `ls rdna_trim_distal_*fna`; do
-    #Find the position of telomere
-    seqtk telo $file > /data/wrayva/output/seqtk_telo/output_${file%.fna}.txt
-    teloPosition=$(cat /data/wrayva/output/seqtk_telo/output_${file%.fna}.txt | head -n1 | awk -F$'\t' '{print $3}')
-    echo $teloPosition
-    #trim the telomere from the sequence
-    seqtk trimfq -b $teloPosition $file > /data/wrayva/output/trim_telo/trim_telo_${file%.fna}.fna
-done
+module load minimap2
+minimap2 -cx asm20 /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs/chr22_distal/chr22_distal.mask.fa /data/wrayva/output/sequences/all.fna > /data/wrayva/output/minimap_chm13chr22masked/minimap_output_with_cigar.paf
 ```
 
-# Aligning Distal Regions
-## parsnp
-The below command is used to align each distal bit fasta sequence to the distal bit of chromosome 15 in CHM13 using `parsnp`.
-```sh
-parsnp -r /data/Phillippy2/projects/acro_comparisons/refs/CHM13/distal_bits/chr15.distal.fa -d /data/wrayva/output/sequences/ -o /data/wrayva/output/parsnp-out
-```
+The positions of the seg dups on CHM13 chromosome 22 can be found on the satellite annotation Cen/Sat v2.1 on the [Repeat annotation for CHM13](https://github.com/marbl/CHM13?tab=readme-ov-file#repeat-annotation). This satellite track can be pulled into the Integrative Genomics Viewer (IGV) by File -> Load from URL. The paf file generated from minimap can be pulled into IGV from File -> Load from File.
 
-## wfmash
+# Extract Segmental Duplications
+We wish to exract four different regions of segmental duplications contained in the distal bits of the acrocentric chromosomes. Here are their coordinates in CHM13 chromosome 22, as given in the [satellite track](https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_censat_v2.1.bed). Note that region D is the distal junction (DJ).
 
-The below command is used to align each distal bit fasta sequence to the distal bit of chromosome 15 in CHM13 using `wfmash`.
-```sh
-module load wfmash
-wfmash --nosplit -s 100k /data/wrayva/output/chm13ref/trim_telo_trim_rdna_chr15.distal.fa /data/wrayva/output/wfmash_on_trimmed_to_chm13/query.fa > /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln.paf
-```
+| Region | Start | End | Name |
+| --- | --- | --- | --- |
+| A | 4578 | 67032 | ct_22_1 |
+| B | 349847 | 459516 | ct_22_5 |
+| C | 3634820 | 3841139 | ct_22_6 through ct_22_10 |
+| D | 4448073 | 4793794 | ct_22_15 through ct_22_18 |
+
+Using the coordinates above to search the minimap PAF output, we can extract the regions A, B, C, and D as done in [extractDJ.sh](extractDistal/DJ/extractDJ.sh)
+
+# Align Segmental Duplications
+Once a particular region, say region A, is extracted from each haplotype, we can align these all to each other with [mafft](https://mafft.cbrc.jp/alignment/software/tips.html) to get a multiple sequence alignment (MSA). Use the script [run_mafft.sh](alignment/run_mafft.sh) for this. Since regions B and C are inverted repeats of each other, we will reverse complement every haplotype region matching region C (in the forward direction) and align these in one MSA together with region B.
 
 # Building Phylogenetic Trees
+Once the MSA is obtained, we can infer a phylogenetic tree using [IQ-TREE](http://www.iqtree.org/), which uses maximum likelihood. Gaps are treated as unknown characters, i.e. no information. Use the script [run_iqtree.sh](tree/run_iqtree.sh), passing in the alignment obtained from mafft.
