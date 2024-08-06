@@ -43,7 +43,7 @@ done
 ```
 
 
-#Fasta Files
+# Fasta Files
 ## Rename Sequence Identifiers in Fasta File:
 I used the following bash code to replace sequence identifiers like sequence_100 with distal_genomeName_chrName_hapName.
 ```bash
@@ -100,7 +100,13 @@ The below bash code gets the second line of a fasta file (where the sequence is)
 cat /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/mask_DJ_5S_rDNA_PHR/DJ.fa | head -n2 | tail -n1 | rev | cut -c-100
 ```
 
-#PAF Files
+## Extract and reverse complement a region of a haplotype
+The below bash code extracts the specified sequence at the specified coordinates from the specified file, doing the reverse complement and not marking the sequence with "\rc".
+```bash
+samtools faidx /data/Phillippy2/projects/primate_T2T/polishing/assemblies/mPanPan1_v2.0/mPanPan1_v2.0_pri.fa ${sequenceName}:${bonoboStart}-${bonoboEnd} --reverse-complement --mark-strand no >> ${regionDir}/bonobo/bonobo.fna
+```
+
+# PAF Files
 ## Create paf with a selection of haplotypes:
 The below bash code extracts certain haplotypes listed in text file to a new paf file for viewing in IGV.
 ```bash
@@ -131,6 +137,12 @@ awk '($17~"tp:A:P")  {print $0}' /data/wrayva/output/minimap_chm13chr22masked/mi
 The below bash code searches a PAF file for regions overlapping with the desired start and end, matching the desired haplotype name, sorted by haplotype, first 100 rows.
 ```bash
 cat /data/wrayva/output/minimap_chm13chr22masked/filtered_minimap_aln.paf | awk '$8 <= 67033 && $9 >= 4577' | grep distal_HG00099_chr13_haplotype1-0000019 | sort -k1 | head -n100
+```
+
+## Look at PAF file in terminal cutting off cigar strings:
+The below bash code displays PAF file contents in the terminal, with the junky columns 19 through 24 removed, and sorted numerically by column 8 (reference start coordinate).
+```bash
+cat chm13chr22vschr21.paf | sort -nk8 | awk '{$19=$18=$20=$21=$22=$23=$24="";print $0}'
 ```
 
 #SAM/BAM Files

@@ -68,3 +68,7 @@ Once a particular region, say region A, is extracted from each haplotype, we can
 
 # Building Phylogenetic Trees
 Once the MSA is obtained, we can infer a phylogenetic tree using [IQ-TREE](http://www.iqtree.org/), which uses maximum likelihood. Gaps are treated as unknown characters, i.e. no information. Use the script [run_iqtree.sh](tree/run_iqtree.sh), passing in the alignment obtained from mafft.
+
+# Future Work
+This paper looks relevant to what we are seeing happen with potential haplotype blocks in the distal junction (DJ): https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10097779/
+See the section, "Comparative analyses of the proximal 100 kb end of human DJ sequence."

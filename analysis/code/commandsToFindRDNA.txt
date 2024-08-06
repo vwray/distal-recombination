@@ -1,0 +1,800 @@
+Directories:
+Distal bits of chm13:
+/data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits
+
+Masked distal bits of chm13:
+/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs
+
+Assemblies:
+/data/Phillippy2/projects/hprc-assemblies/assemblies-v3/
+
+Folder where I can put things to share:
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/
+
+Bed files that contain distal bit positions and telomere positions:
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/bed
+
+Distal bit sequences, trimmed at 1Mb gap but no other trimming, sequence identifiers of this form: distal_${genomeName}_${chrName}_${hapName}:
+/data/wrayva/output/sequences
+
+Distal junction:
+/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/mask_DJ_5S_rDNA_PHR/DJ.fa
+
+Bed files containing distal junction locations:
+/data/wrayva/output/extract_regions/DJ/
+
+Distal junction extracted sequences:
+/data/wrayva/output/extract_regions/DJ/sequences
+
+Satellite annotations:
+CHM13 github readme, repeat annotations:
+https://github.com/marbl/CHM13?tab=readme-ov-file#repeat-annotation
+
+Satellite annotation bed file (linked on the above page):
+https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_censat_v2.1.bed
+
+
+#Below is supposed to find number of gaps and where they are in assembly.fasta file. Is having an error: Error: line number 2197554 of file - has 2 fields, but 6 were expected.
+
+cd /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/$genomeName/verkko-hi-c
+seqkit locate --only-positive-strand --bed -m 0 -p N assembly.fasta | bedtools merge -i - > /home/wrayva/gaps.bed
+
+# Nancy's code works: changes cut to awk:
+
+cd /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/
+for genomeName in `ls -d HG*`; do
+  echo $genomeName
+  cd /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/$genomeName/verkko-hi-c
+  for line in `grep 'rdna' assembly.paths.tsv | awk -F"\t" '{print $1}'`; do
+        hapName=$(grep -w $line assembly.scfmap | cut -d ' ' -f2)
+        echo
+        echo $hapName
+        grep -w $hapName analysis/assembly-ref.norm.mashmap |sed s/id:f://g |awk '{if ($(NF-1) > 0.99 && $4-$3 > 200000) print $0}' | sort -k3
+  done
+done
+
+# Need to grab first row (can sort based on third column) and check if has a minus, and if so, take the chromosome number of this first line as our chromosome label.
+# Also verify that first row starts at a position less than 100000, or make sure this is the largest segment, to verify that it's the q arm.
+# Flag the entries with a + so we can look at those later
+
+cd /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/
+for genomeName in `ls -d HG*`; do
+  echo $genomeName
+  cd /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/$genomeName/verkko-hi-c
+  for line in `grep 'rdna' assembly.paths.tsv | awk -F"\t" '{print $1}'`; do
+    hapName=$(grep -w $line assembly.scfmap | cut -d ' ' -f2)
+    echo
+    echo $hapName
+    for mashmapLine in `grep -w $hapName analysis/assembly-ref.norm.mashmap |sed s/id:f://g |awk '{if ($(NF-1) > 0.99 && $4-$3 > 200000) print $0}' | sort -k3`; do
+      echo $mashmapLine
+      echo
+      if [[ `echo $mashmapLine | awk -F"\t" '{print $5}'` == '-' ]]; then
+        chrLabel=$($mashmapLine | awk -F"\t" '{print $6}')
+        orientation='-'
+        echo $chrLabel $orientation
+      fi
+      if [[ `echo $mashmapLine | awk -F"\t" '{print $5}'` == '+' ]]; then
+        echo "Line $hapName contains a \+"
+      fi
+    done
+  done
+done
+
+
+# fasta format should be fixed now
+
+cd /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/
+for genomeName in `ls -d HG*`; do
+  echo $genomeName
+  cd /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/$genomeName/verkko-hi-c
+  for line in `grep 'rdna' assembly.paths.tsv | awk -F"\t" '{print $1}'`; do
+    hapName=$(grep -w $line assembly.scfmap | cut -d ' ' -f2)
+    #echo
+    echo $hapName
+    i=1
+    grep -w $hapName analysis/assembly-ref.norm.mashmap |sed s/id:f://g |awk '{if ($(NF-1) > 0.99 && $4-$3 > 200000) print $0}' | sort -nk3 | while read -r mashmapLine; do
+      #echo "mashmap line $i"
+      #echo $mashmapLine
+      if [[ $i -eq 1 && `echo $mashmapLine | cut -d ' ' -f5` == '-' ]]; then
+        chrLabel=$(echo $mashmapLine | cut -d ' ' -f6)
+        orientation='-'
+        #find hapName in assembly file
+        python /home/wrayva/scripts/find_distal_bits.py -f "/data/Phillippy2/projects/hprc-assemblies/assemblies-v3/$genomeName/verkko-hi-c/assembly.fasta" -a "$hapName" -r 'True' -o "/home/wrayva/output/distal_${genomeName}_${chrLabel}_${hapName}.txt"
+        # add to fasta file
+        echo ">${genomeName}_${chrLabel}_${hapName}" >> /home/wrayva/output/distalbits2.fasta
+        cat "/home/wrayva/output/distal_${genomeName}_${chrLabel}_${hapName}.txt" >> /home/wrayva/output/distalbits2.fasta
+        #echo >> /home/wrayva/output/distalbits2.fasta
+      fi
+      if [[ `echo $mashmapLine | cut -d ' ' -f5` == '+' ]]; then
+        echo "$genomeName $hapName contains a +"
+        if [[ $i -eq 1 ]]; then
+          echo "distal bit is at beginning here, need to handle appropriately"
+          echo "skipping $genomeName $hapName"
+          #get chromosome label from last row instead of first
+          chrLabel=$(grep -w $hapName analysis/assembly-ref.norm.mashmap |sed s/id:f://g |awk '{if ($(NF-1) > 0.99 && $4-$3 > 200000) print $0}' | sort -k3 | tail -n1 | awk -F"\t" '{print $6}')
+          #echo "chr label for $genomeName $hapName is: $chrLabel"
+          #python /home/wrayva/scripts/find_distal_bits.py -f "/data/Phillippy2/projects/hprc-assemblies/assemblies-v3/$genomeName/verkko-hi-c/assembly.fasta" -a "$hapName" -r 'False' -o "/home/wrayva/output/distal_${genomeName}_${chrLabel}_${hapName}.txt"
+          # add to fasta file
+        fi
+      fi
+      ((i++))
+    done
+  done
+done
+
+
+
+
+
+with open('/home/wrayva/output/distalbits2.fasta') as file:
+	j=1
+	for line in file:
+		#print("line", j)
+		print(line[0:100])
+		j = j + 1
+
+
+
+grep -w haplotype1-0000008 analysis/assembly-ref.norm.mashmap |sed s/id:f://g |awk '{if ($(NF-1) > 0.99 && $4-$3 > 200000) print $0}' | sort -nk3 | tail -n1 | cut -d ' ' -f6
+
+If I do not reverse the haplotype:
+gap starts at position 18812538
+gap ends before position 19812539
+1000001
+end of distal bit is 18812538
+
+If I do reverse the haplotype:
+HG02155 haplotype1-0000008 contains a +
+distal bit is at beginning here, need to handle appropriately
+gap starts at position 1932199
+gap ends before position 2932200
+
+
+2.5 million or 3 million bases should be the length of distal bit
+
+318 entries in my fasta file output for distal bits for HG* genomes
+    grep -c -vE 'chr13|chr14|chr15|chr21|chr22' /home/wrayva/output/distalbits2.fasta
+    grep -c '>' /home/wrayva/output/distalbits2.fasta
+51 entries for NA* genomes
+    grep -c '>' /data/wrayva/output/NAdistalbits/distalbits.fasta
+63 genomes in /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/
+    ls -d HG* | wc -l
+    13*4 + 11
+Up to 10 haplotypes with rDNA (the acrocentric chromosomes)
+
+shortest line: 949607
+longest line: 6101711
+
+
+cut -c-100 /home/wrayva/output/distalbits2.fasta
+
+grep -c -vE 'chr13|chr14|chr15|chr21|chr22' /home/wrayva/output/distalbits2.fasta | cut -c-100
+grep -c -vE 'chr13|chr14' /home/wrayva/output/distalbits2.fasta
+
+grep -c 'N' /home/wrayva/output/distalbits2.fasta
+
+grep -oE 'N[N]*' /home/wrayva/output/distalbits2.fasta | cut -c-200
+
+grep -v 'chr13' /home/wrayva/output/distalbits2.fasta | grep -v 'chr14' | grep -c -v 'A'
+
+awk '!/A/ && !/C/ && !/T/ && !/chr13/ && !/chr14/ && !/chr15/ && !/chr21/' /home/wrayva/output/distalbits2.fasta
+
+grep -c -E '[A|C|T|G][A|C|T|G]+' /home/wrayva/output/distalbits2.fasta | cut -c-100
+
+
+for line in `grep -E '[A|C|T|G][A|C|T|G]+' /home/wrayva/output/distalbits2.fasta`; do
+    result=$(echo line | wc -c)
+    echo $result
+done
+
+grep -E '[A|C|T|G][A|C|T|G]+' /home/wrayva/output/distalbits2.fasta | head -n1 | wc -c
+
+
+grep -E '[A|C|T|G][A|C|T|G]+' /home/wrayva/output/distalbits2.fasta | while read -r line; do
+    result=$(echo line | wc -c)
+    echo $result
+done
+
+wc -L /home/wrayva/output/distalbits2.fasta
+
+awk '{ print length }' /home/wrayva/output/distalbits2.fasta >> /home/wrayva/output/distalbits2_lineLengths.txt
+
+i=1
+for line in `cat /home/wrayva/output/distalbits2_lineLengths.txt`; do
+    if [[ $(($i % 2)) -eq 0 ]]; then
+        echo $line >> /home/wrayva/output/distalbits2_modifiedlineLengths.txt
+    fi
+    ((i++))
+done
+
+cut -c-100 /home/wrayva/output/distalbits2.fasta
+grep HG00609 /home/wrayva/output/distalbits2.fasta
+grep -A1 HG00423_chr21_haplotype2-0000085 /home/wrayva/output/distalbits2.fasta | cut -c-100
+    should match this: TGGGATTGGGATTGGGATTGGGATTGGGATTGGGATTGGATTGGGATTGGGATTGGGATTGGGATTGGATTGGGATTGGGATTGGGATTGGGATTGGGAT
+grep -A1 haplotype2-0000085 /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/HG00423/verkko-hi-c/assembly.fasta | rev | cut -c 1-100
+
+mv distal_*_chr*_haplotype*.txt sequences/
+
+ls *HG02155*
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+file_obj = open("/home/wrayva/output/distalbits2_modifiedlineLengths.txt", "r")
+
+# reading the data from the file
+file_data = file_obj.read()
+
+# splitting the file data into lines
+lines = file_data.splitlines()
+x=[]
+for i in range(0, len(lines)):
+    x.append(int(lines[i]))
+
+fig, ax = plt.subplots(1, 1)
+ax.hist(x)
+
+# Set title
+ax.set_title("Distribution of Lengths of Distal Bits")
+
+# adding labels
+ax.set_xlabel('Length of distal bit')
+ax.set_ylabel('Frequency')
+
+plt.show()
+plt.savefig('/home/wrayva/output/distalbits2_lengthsHistogram.png')
+
+
+moved distal bits fasta to here: /data/Phillippy2/projects/acro_comparisons/hprc/align_45S/distalbits2.fasta
+
+minimap2 -x asm20 /data/Phillippy/references/T2T-CHM13/chm13v2.0.fa /data/Phillippy2/projects/acro_comparisons/hprc/align_45S/distalbits2.fasta  > /data/Phillippy2/projects/acro_comparisons/hprc/chm13_to_distalbits.paf
+
+
+
+ml load minimap2 bedtools
+minimap2 -x asm20 /data/Phillippy2/projects/acro_comparisons/hprc/align_45S/distalbits2.fasta /data/Phillippy/references/T2T-CHM13/chm13v2.0.fa > /data/Phillippy2/projects/acro_comparisons/hprc/chm13_to_distalbits.paf
+
+
+ml load minimap2 bedtools
+minimap2 -x asm20 /home/wrayva/output/distalbits2.fasta /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/rdna_unit/45S.fa > /home/wrayva/output/45S_to_distalbits.paf
+awk -v OFS='\t' '{print $6,$8,$9}' /home/wrayva/output/45S_to_distalbits.paf | bedtools sort -i - > /home/wrayva/output/45S_to_distalbits.bed
+awk -v OFS='\t' '{ if(NR==1) print $6,"0",$2 }' /home/wrayva/output/45S_to_distalbits.bed > /home/wrayva/output/interval_for_cut.bed
+
+
+
+minimap2 -x asm20 /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/rdna_unit/45S.fa /data/Phillippy2/projects/acro_comparisons/hprc/align_45S/distalbits2.fasta > /data/Phillippy2/projects/acro_comparisons/hprc/45S_to_distalbits.paf
+
+
+
+
+
+
+
+
+cat /home/wrayva/scripts/find_distal_bits.py
+
+mv /home/wrayva/output/distalbits2.fasta /data/Phillippy2/projects/acro_comparisons/hprc/distal/distalbits3.fasta
+
+minimap2 -x asm20 /data/Phillippy/references/T2T-CHM13/chm13v2.0.fa /data/Phillippy2/projects/acro_comparisons/hprc/distal/distalbits3.fasta > /data/Phillippy2/projects/acro_comparisons/hprc/chm13_to_distalbits2.paf
+
+
+ml load samtools mummer gnuplot
+
+samtools faidx /data/Phillippy2/projects/acro_comparisons/hprc/distal/distalbits3.fasta HG00099_chr14_haplotype2-0000155 > /data/Phillippy2/projects/acro_comparisons/hprc/distal/HG00099_chr14_haplotype2-0000155.fa
+mummer -maxmatch /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/chm13/chr14.fa /data/Phillippy2/projects/acro_comparisons/hprc/distal/HG00099_chr14_haplotype2-0000155.fa > /data/Phillippy2/projects/acro_comparisons/hprc/distal/out.delta
+mummerplot /data/Phillippy2/projects/acro_comparisons/hprc/distal/out.delta
+
+for file in *.fna; do
+    mv -- "$file" "${file%.fna}.fna"
+done
+
+
+rename fasta.fna.fna fna *.fasta.fna.fna
+
+i=1
+for file in *.fasta; do
+    echo ">sequence_${i}" | cat - $file > temp && mv temp $file
+    ((i++))
+done
+
+i=1
+for file in *.fasta; do
+    echo ">sequence_${i}" | cut -c-100 - $file
+    ((i++))
+done
+
+echo ">sequence_1" | cut -c-100 - distal_HG02165_chr13_haplotype1-0000006.fasta
+
+
+parsnp -r /home/wrayva/output/sequences/distal_HG00099_chr13_haplotype1-0000019.fna -d /data/wrayva/output/sequences/ -o /home/wrayva/output/examples-out -v
+
+CHM 13 distal bits: /data/Phillippy2/projects/acro_comparisons/refs/CHM13/distal_bits
+reference: /data/Phillippy2/projects/acro_comparisons/refs/CHM13/distal_bits/chr15.distal.fa
+
+mafft /data/Phillippy2/projects/acro_comparisons/hprc/distal/distalbits3.fasta > /data/wrayva/output/mafft-output/output1.txt
+
+module load mafft
+mafft-linsi /data/Phillippy2/projects/acro_comparisons/hprc/distal/distalbits3.fasta > /data/wrayva/output/mafft-linsi-output/output1.txt
+
+sbatch --mem=220g mafft-linsi-command.sh
+
+moved everything in /home/wrayva to /data/wrayva
+
+get the distal bits of NA genomes:
+cd /data/wrayva/scripts
+./find_distal_bits_NA.sh /data/Phillippy2/projects/hprc-assemblies/assemblies-v3/ /data/wrayva/output/NAdistalbits /data/wrayva/scripts
+
+move parsnp folders to interior dir:
+find ./ -maxdepth 1 -type f | xargs mv -t ./ref_HG00099_chr13_haplotype1-0000019/
+
+Run parsnp with CHM15 Chr 15 as reference:
+module load parsnp
+parsnp -r /data/Phillippy2/projects/acro_comparisons/refs/CHM13/distal_bits/chr15.distal.fa -d /data/wrayva/output/sequences/ -o /data/wrayva/output/parsnp-output/ref_chm13_chr15 -v
+
+
+Want to trim rDNA off:
+ml load minimap2 bedtools
+
+minimap2 -x asm20 /data/Phillippy2/projects/acro_comparisons/hprc/distal/distalbits3.fasta /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/rdna_unit/45S.fa > 45S_to_distalbits.paf
+awk -v OFS='\t' '{print $6,$8,$9}' /data/wrayva/output/trim_rdna/45S_to_distalbits.paf | bedtools sort -i - > /data/wrayva/output/trim_rdna/45S_to_distalbits.bed
+awk -v OFS='\t' '{ if(NR==1) print $6,"0",$2 }' /data/wrayva/output/trim_rdna/45S_to_distalbits.bed > /data/wrayva/output/trim_rdna/interval_for_cut.bed
+
+run mashmap to find matches with rdna:
+mashmap -t 8 -r /data/wrayva/output/sequences/distal_HG00099_chr14_haplotype2-0000155.fna -q /data/Phillippy/references/hg38/rDNA.fasta --pi 95 -s 10000 -f none -o /data/wrayva/output/mashmap_rdna/HG00099_chr14_haplotype2-0000155.mashmap
+
+
+cd /data/wrayva/output/sequences
+for file in `ls distal_*fna`; do
+    echo ${file%.fna}
+    mashmap -t 8 -r $file -q /data/Phillippy/references/hg38/rDNA.fasta --pi 95 -s 10000 -f none -o /data/wrayva/output/mashmap_rdna/${file%.fna}.mashmap
+done
+
+#convert NA distal bits to proper fasta files:
+cd /data/wrayva/output/NAdistalbits
+for file in `ls distal_*`; do
+    #echo ${file%.txt}
+    touch ${file%.txt}.fna
+    echo ">${file%.txt}" >> ${file%.txt}.fna
+    cat $file >> ${file%.txt}.fna
+done
+
+checking:
+>chr13_haplotype1-0000019
+ACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTAACCCTA
+
+touch /data/wrayva/output/sequences/assembly_refOriented_chr13_haplotype1-0000019.fna
+
+#Sorts mashmap rows based on first start position of rDNA in the distal region
+sort -t$'\t' -nk8 distal_HG02922_chr13_haplotype2-0000114.mashmap
+
+#loop over mashmap files, take smallest start index as rDNA beginning, trim sequences
+#also include NA* genomes
+
+#trims rdna, but this doesn't handle empty mashmap files. handling that below
+cd /data/wrayva/output/mashmap_rdna
+for file in `ls distal_*mashmap`; do
+    echo ${file%.mashmap}
+    rdnaPosition=$(sort -t$'\t' -nk8 $file | head -n1 | awk '{ print $8 }')
+    echo $rdnaPosition
+    #touch ${file%.mashmap}.fna
+    cut -c-$(($rdnaPosition - 1)) /data/wrayva/output/sequences/${file%.mashmap}.fna >> /data/wrayva/output/trim_rdna/rdna_trim_${file%.mashmap}.fna
+done
+
+#check for empty files
+cd /data/wrayva/output/mashmap_rdna
+for file in `find -empty`; do
+    file=${file#./}
+    echo $file
+    echo ${file%.mashmap}
+    cp /data/wrayva/output/sequences/${file%.mashmap}.fna /data/wrayva/output/trim_rdna/rdna_trim_${file%.mashmap}.fna
+    #cut -c-$(($rdnaPosition - 1)) /data/wrayva/output/sequences/${file%.mashmap}.fna >> /data/wrayva/output/trim_rdna/rdna_trim_${file%.mashmap}.fna
+done
+
+module load seqtk
+#trim telomere
+cd /data/wrayva/output/trim_rdna
+for file in `ls rdna_trim_distal_*fna`; do
+    echo ${file%.fna}
+    #seqtk telo $file > /data/wrayva/output/seqtk_telo/output_${file%.fna}.txt
+    teloPosition=$(cat /data/wrayva/output/seqtk_telo/output_${file%.fna}.txt | head -n1 | awk -F$'\t' '{print $3}')
+    echo $teloPosition
+    #trim
+done
+
+
+
+
+
+cat /data/wrayva/output/chm13ref/chr15.distal.fa.mashmap
+seqtk trimfq -e 13192 /data/wrayva/output/chm13ref/chr15.distal.fa > /data/wrayva/output/chm13ref/trim_rdna_chr15.distal.fa
+seqtk telo /data/wrayva/output/chm13ref/trim_rdna_chr15.distal.fa
+seqtk trimfq -b 3257 trim_rdna_chr15.distal.fa > /data/wrayva/output/chm13ref/trim_telo_trim_rdna_chr15.distal.fa
+samtools faidx /data/wrayva/output/chm13ref/trim_telo_trim_rdna_chr15.distal.fa
+
+#fix sequence identifiers and put all fastas in one file (query.fa):
+cd /data/wrayva/output/trim_telo
+for file in `ls *.fna`; do
+    file2=${file#trim_telo_rdna_trim_}
+    echo ">${file2%.fna}" >> /data/wrayva/output/wfmash_on_trimmed_to_chm13/query.fa
+    cat $file | tail -n1 >> /data/wrayva/output/wfmash_on_trimmed_to_chm13/query.fa
+done
+
+
+
+
+cut -c-100 /data/wrayva/output/wfmash_on_trimmed_to_chm13/query.fa
+
+
+#run wfmash:
+module load wfmash
+wfmash --nosplit -s 100k /data/wrayva/output/chm13ref/trim_telo_trim_rdna_chr15.distal.fa /data/wrayva/output/wfmash_on_trimmed_to_chm13/query.fa > /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln.paf
+
+#Arang's script to run wfmash:
+
+#!/bin/bash
+module load wfmash/0.14.0
+wfmash --no-split -ad --one-to-one -s100000 -p95 /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs/chr22_distal/chr22_distal.mask.fa /data/wrayva/output/sequences/all.fna > /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln_via_arang.sam
+samtools sort  -T /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln_via_arang.tmp -O bam /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln_via_arang.sam > /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln_via_arang2.bam
+samtools index /data/wrayva/output/wfmash_on_trimmed_to_chm13/aln_via_arang2.bam
+
+
+samtools sort  -T /data/wrayva/output/minimap_chm13chr22masked/sam_to_bam.tmp -O bam /data/wrayva/output/minimap_chm13chr22masked/minimap_output_as_sam.sam > /data/wrayva/output/minimap_chm13chr22masked/minimap_output_as_bam.bam
+samtools index /data/wrayva/output/minimap_chm13chr22masked/minimap_output_as_bam.bam
+
+
+
+sbatch --time=30:00:00 --mem=16g run_wfmash_arang2.sh
+
+
+distal junction:
+/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/mask_DJ_5S_rDNA_PHR/DJ.fa
+
+module load minimap2
+minimap2 -x asm20 /data/wrayva/output/sequences/distal_NA20905_chr22_haplotype2-0000055.fna /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/mask_DJ_5S_rDNA_PHR/DJ.fa > /data/wrayva/output/minimap_dj/NA20905_chr22_haplotype2-0000055_ref_to_DJ_query.paf
+
+positions where I chopped off rDNA are in this file: /data/wrayva/output/mashmap_rdna/${file%.fna}.mashmap
+
+
+
+distal_NA20905_chr22_haplotype2-0000055	3077409	2701070	3046849	+	chr13:5424523-5770548	346025	2	346019	315616	346919	60	tp:A:P	cm:i:52085	s1:i:315181	s2:i:85386	dv:f:0.0016	rl:i:600
+
+awk -v OFS='\t' '{print $6,$8,$9}' /data/wrayva/output/minimap_dj/NA20905_chr22_haplotype2-0000055_ref_to_DJ_query.paf | bedtools sort -i - > /data/wrayva/output/trim_rdna/45S_to_distalbits.bed
+awk -v OFS='\t' '{ if(NR==1) print $6,"0",$2 }' /data/wrayva/output/trim_rdna/45S_to_distalbits.bed > /data/wrayva/output/trim_rdna/interval_for_cut.bed
+
+minimap with DJ says to trim NA20905_chr22_haplotype2-0000055 at 3046849
+mashmap with rDNA said to trim at 3046417
+
+#run minimap on all sequences with my seq as ref and the DJ as query.
+#grab entry 9, tab separated, in the paf file
+#write DJ coords to bed file
+#trim my sequence there
+#run minimap on telomere
+#write telomere coords to bed file
+#trim my sequence there
+#handle empty minimap output
+trim_based_on_dj.sh
+
+#put all sequences in /data/wrayva/output/sequences into one fasta with sequence identifiers renamed:
+cd /data/wrayva/output/sequences
+for file in `ls distal*.fna`; do
+    echo ">${file%.fna}" >> all.fna
+    cat $file | tail -n1 >> all.fna
+done
+
+#run minimap2 on all.fna against chm13 chr 22 masked ref
+module load minimap2
+minimap2 -ax asm20 /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.mask.upper.fa /data/wrayva/output/sequences/all.fna > /data/wrayva/output/minimap_chm13chr22masked/minimap_output_as_sam.sam
+
+#try switching ref and query
+module load minimap2
+minimap2 -x asm20 /data/wrayva/output/sequences/all.fna /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs/chr22_distal/chr22_distal.mask.fa > /data/wrayva/output/minimap_chm13chr22masked/minimap_output_all_masked_as_query.paf
+
+sbatch --time=5:00:00 --mem=16g /data/wrayva/output/minimap_chm13chr22masked/run_minimap_masked_as_ref.sh
+
+
+cat minimap_output_all.paf | head -n200
+
+sed -i 's/chr22_distal_mask/chr22/g' /data/wrayva/output/minimap_chm13chr22masked/filtered_minimap_with_cigar.paf
+sed -i 's/chr13:5424523-5770548/chr13/g' /data/wrayva/output/minimap_dj/distal_HG00280_chr15_haplotype1-0000019.paf
+sed -i "s/$toReplace/$replaceWith/g" copy_distal_HG00099_chr13_haplotype1-0000019.fna
+
+toReplace=$(cat copy_distal_HG00099_chr13_haplotype1-0000019.fna | grep -o "\w*sequence_\w*")
+echo $toReplace
+
+genomeName=HG00099
+chrName=chr13
+hapName=haplotype1-0000019
+
+replaceWith=distal_${genomeName}_${chrName}_${hapName}
+
+#filter paf file
+awk '($13~"tp:A:P")  {print $0}' minimap_output_all.paf > filtered_minimap_aln.paf
+awk '($17~"tp:A:P")  {print $0}' /data/wrayva/output/minimap_chm13chr22masked/minimap_output_with_cigar.paf > /data/wrayva/output/minimap_chm13chr22masked/filtered_minimap_with_cigar.paf
+
+cd /data/wrayva/output/minimap_chm13chr22masked
+cat filtered_minimap_aln.paf | grep -w '-' | awk '$8 <= 459517 && $9 >= 349846' | awk -F$'\t' '{print $1}' | sort -k1 | uniq
+cat filtered_minimap_aln.paf | grep -w '-' | awk '$8 <= 3841140 && $9 >= 3634819' | sort -k1
+#30764 entries in filtered_minimap_aln.paf
+#14675 entries reverse oriented
+#156 entries reverse oriented in ct_22_5: 349847	459516
+#3 entries reverse oriented in hsat3_22_3(A4,A2):  3529630	3634820
+
+
+change second window from hsat3_22_3(A4,A2):  3529630	3634820
+to 3634820 through 3841139  ct_22_6 through ct_22_10
+
+distal_NA20752_chr15_haplotype1-0000017	4873600	1095234	1095528	-	chr22	4793795	3805528	3805823	255	295	60	tp:A:P	cm:i:36	s1:i:255	s2:i:163	dv:f:0.0117	rl:i:930
+
+
+
+cat minimap_output_all.paf | grep -w '-' | awk '$8 <= 3634821 && $9 >= 3529629' | wc -l
+
+
+
+sed -i 's/CHR22:1-4793795/chr22/g' /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.upper.fa
+
+#convert ref to all uppercase
+awk '{ print toupper($0) }' /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs/chr22_distal/chr22_distal.mask.fa > /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.mask.upper.fa
+
+awk '{ print toupper($0) }' /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.fa > /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.upper.fa
+
+
+
+static:
+
+source myconda
+conda activate dfv
+cd /data/wrayva/gitRepos/ModDotPlot
+moddotplot static -f /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.upper.fa /data/wrayva/output/sequences/distal_HG02486_chr15_haplotype2-0000092.fna -o /data/wrayva/output/moddotplot/gap_in_alignment_HG02486_chr15_haplotype2-0000092 --compare-only
+
+moddotplot static -f /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal_upper.fa /data/wrayva/output/sequences/distal_HG01175_chr22_haplotype2-0000089.fna -o /data/wrayva/output/moddotplot/HG01175_chr22_haplotype2-0000089 --compare
+
+moddotplot static -f /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal_upper.fa /data/wrayva/output/sequences/distal_HG01943_chr15_haplotype1-0000013.fna -o /data/wrayva/output/moddotplot/HG01943_chr15_haplotype1-0000013 --compare
+
+interactive:
+
+cd /data/wrayva/gitRepos/ModDotPlot
+source venv/bin/activate
+moddotplot interactive -f /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.upper.fa /data/wrayva/output/sequences/distal_HG02486_chr15_haplotype2-0000092.fna -o /data/wrayva/output/moddotplot/interactive --compare-only --port $PORT1
+
+moddotplot interactive -f /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.fa /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr21.distal.fa -o /data/wrayva/output/moddotplot/interactive --compare-only --port $PORT1
+
+
+
+cat /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.fa | head -n2 | tail -n1 | wc -c
+
+
+sample with inverts: distal_NA20752_chr15_haplotype1-0000017
+another sample with inverts: distal_HG04184_chr14_haplotype2-0000060
+another sample with inverts: distal_HG02486_chr13_haplotype2-0000089
+sample with no inverted matches: distal_HG01943_chr15_haplotype1-0000013
+
+Try this sample with inverts: distal_HG01175_chr22_haplotype2
+    looks like invert is not noticable
+Try this one: distal_HG03831_chr14_haplotype1-0000003
+or distal_HG04184_chr14_haplotype2-0000060
+
+
+
+
+satellite track: https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_censat_v2.1.bed
+IGV -> File -> Load from URL
+
+Regions of interest:
+A: chr22	4578	67032	ct_22_1	100	.	4578	67032	224,224,224
+B: chr22	349847	459516	ct_22_5	100	.	349847	459516	224,224,224
+    length of B = 109,669
+C: chr22	3634820	3746133	ct_22_6	100	.	3634820	3746133	224,224,224
+    length of C = 111,313
+chr22	3746133	3747558	censat_22_5(CER)	100	.	3746133	3747558	0,204,204
+chr22	3747558	3748807	censat_22_6(HSat5)	100	.	3747558	3748807	0,204,204
+chr22	3748807	3752403	ct_22_7	100	.	3748807	3752403	224,224,224
+chr22	3752403	3753771	censat_22_7(HSat5)	100	.	3752403	3753771	0,204,204
+chr22	3753771	3807093	ct_22_8	100	.	3753771	3807093	224,224,224
+chr22	3807093	3809227	censat_22_8(SATR)	100	.	3807093	3809227	0,204,204
+chr22	3809227	3812149	ct_22_9	100	.	3809227	3812149	224,224,224
+chr22	3812149	3815993	censat_22_9(SATR)	100	.	3812149	3815993	0,204,204
+chr22	3815993	3841139	ct_22_10	100	.	3815993	3841139	224,224,224
+^^^^^others that may be part of C
+D: chr22	4448073	4471767	ct_22_15	100	.	4448073	4471767	224,224,224
+chr22	4471767	4474420	gsat_22_3(GSATII)	100	.	4471767	4474420	172,51,199
+chr22	4474420	4479560	ct_22_16	100	.	4474420	4479560	224,224,224
+chr22	4479560	4491801	bsat_22_4	100	.	4479560	4491801	250,153,255
+chr22	4491801	4661600	ct_22_17	100	.	4491801	4661600	224,224,224
+chr22	4661600	4674054	bsat_22_5	100	.	4661600	4674054	250,153,255
+chr22	4674054	4793794	ct_22_18	100	.	4674054	4793794	224,224,224
+    distal junction
+
+cd /data/wrayva/output/extract_regions
+samtools view -L regionA.bed /data/wrayva/output/minimap_chm13chr22masked/filtered.bam | wc -l
+
+samtools view -L regionA.bed /data/wrayva/output/minimap_chm13chr22masked/filtered.bam | cut -c-200 | grep distal_NA18983_chr21_haplotype2-0000056 | sort -nk8
+
+cat /data/wrayva/output/minimap_chm13chr22masked/filtered_minimap_aln.paf | grep distal_NA18983_chr21_haplotype2-0000056
+
+#filter a bam file:
+samtools view -F 260 -O BAM /data/wrayva/output/minimap_chm13chr22masked/minimap_output_as_bam.bam > /data/wrayva/output/minimap_chm13chr22masked/filtered.bam
+
+
+
+Use this to reverse complement a fasta file:
+seqtk seq -r in.fq > out.fq
+
+
+
+checking inverted repeat regions for alignments in reverse direction
+    Wrong alignment 1:
+        Query sequence name: distal_HG02486_chr13_haplotype2-0000089
+        Query sequence length: 3502414
+        Query start (0-based): 2059873
+        Query end (0-based):2248040
+        Relative strand: -
+        Target sequence name: chr22
+        Target sequence length: 4793795
+        Target start (0-based): 252786
+        Target end (0-based): 459505
+        Number of residual matches: 125241
+        Alignment block length: 206947
+        Mapping quality (0-255): 60
+        tp:A:P
+        cm:i:20794
+        s1:i:122305
+        s2:i:83202
+        dv:f:0.0029
+        rl:i:1159
+    Wrong alignment 2:
+        Query sequence name: distal_HG04184_chr14_haplotype2-0000060
+        Query sequence length: 3081536
+        Query start (0-based): 2208546
+        Query end (0-based):2416877
+        Relative strand: -
+        Target sequence name: chr22
+        Target sequence length: 4793795
+        Target start (0-based): 252786
+        Target end (0-based): 459505
+        Number of residual matches: 125223
+        Alignment block length: 208931
+        Mapping quality (0-255): 60
+        tp:A:P
+        cm:i:20793
+        s1:i:124753
+        s2:i:80147
+        dv:f:0.0029
+        rl:i:1130
+
+
+
+
+
+
+
+
+
+
+
+ml load mummer
+
+samtools faidx /data/wrayva/output/sequences/all.fna distal_HG02273_chr22_haplotype1-0000003 > distal_HG02273_chr22_haplotype1-0000003.fa
+mummer -maxmatch /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs/chr22_distal/chr22_distal.mask.fa distal_NA20905_chr22_haplotype2-0000055.fa > out.delta
+mummerplot out.delta
+
+
+
+module load mummer
+module load gnuplot
+
+export FASTA1=/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs/chr22_distal/chr22_distal.mask.fa
+export FASTA2=/data/wrayva/output/sequences/distal_HG02165_chr22_haplotype1-0000007.fna
+export PREFIX=distal_HG02165_chr22_haplotype1-0000007
+export TITLE=distal_HG02165_chr22_haplotype1-0000007
+
+mummer -l 15 -mum -b -c $FASTA1 $FASTA2 > $PREFIX.mums
+mummerplot -png -p mummer $PREFIX.mums -p $PREFIX -title $TITLE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#R code to visualize alignment:
+library(ggplot2)
+paf = read.table("/data/wrayva/output/minimap_chm13chr22masked/minimap_output_all.paf", sep="\t")
+ggplot(data=paf, aes(x=V3, xend=V4, y=V8, yend=V9, color=factor(V1))) + geom_segment() + labs(x="Reference coordinate", y="Query coordinate")
+
+
+library(pafr, quietly=TRUE)
+ali <- read_paf("/data/wrayva/output/minimap_chm13chr22masked/minimap_output_all.paf")
+dotplot(ali)
+jpeg(file = "/data/wrayva/output/minimap_chm13chr22masked/rDotPlot.jpg")
+dev.off()
+
+
+#distal_HG01346_chr13_haplotype1-0000019
+#chr22_distal_mask
+long_ali <- subset(ali, alen > 1e4)
+super_long_ali <- subset(ali, alen > 6e5)
+jpeg(file = "/data/wrayva/output/minimap_chm13chr22masked/rSyntenyPlot_HG00280_chr22_haplotype2-0000059.jpg")
+plot_synteny(long_ali, q_chrom="distal_HG00280_chr22_haplotype2-0000059", t_chrom="chr22_distal_mask", centre=TRUE)
+dev.off()
+
+jpeg(file = "/data/wrayva/output/minimap_chm13chr22masked/rCoveragePlot.jpg")
+plot_coverage(super_long_ali, fill='qname') +
+   scale_fill_brewer(palette="Set1")
+dev.off()
+
+Genome/haplotypes containing +:
+    HG00099 haplotype2-0000156
+    HG00280 haplotype1-0000019
+    HG00423 haplotype1-0000019
+    HG00423 haplotype1-0000026
+    HG00544 haplotype1-0000016
+    HG00735 haplotype1-0000025
+    HG00735 haplotype2-0000142
+    HG00738 haplotype2-0000056
+    HG00738 haplotype1-0000022
+    HG00741 haplotype1-0000027
+    HG01099 haplotype1-0000010
+    HG01099 haplotype1-0000002
+    HG01106 haplotype1-0000009
+    HG01175 haplotype1-0000002
+    HG01255 haplotype2-0000158
+    HG01255 haplotype2-0000159
+    HG01258 haplotype2-0000045
+    HG01346 haplotype2-0000084
+    HG01884 haplotype1-0000001
+    HG01891 haplotype2-0000091
+    HG01943 haplotype1-0000013
+    HG01952 haplotype1-0000004
+    HG01952 haplotype1-0000008
+    HG01981 haplotype2-0000068
+    HG02148 haplotype2-0000066
+    HG02148 haplotype1-0000011
+    HG02155 haplotype1-0000004
+    HG02155 haplotype1-0000008    *** distal bit is at beginning on this one
+    HG02273 haplotype2-0000047
+    HG02280 haplotype1-0000009
+    HG02280 haplotype2-0000203
+    HG02280 haplotype1-0000006
+    HG02293 haplotype1-0000023
+    HG02293 haplotype2-0000053
+    HG02300 haplotype2-0000060
+    HG02486 haplotype2-0000092
+    HG02559 haplotype2-0000231
+    HG02572 haplotype1-0000011
+    HG02572 haplotype2-0000166
+    HG02615 haplotype2-0000114
+    HG02622 haplotype1-0000011
+    HG02630 haplotype1-0000030
+    HG02630 haplotype2-0000187
+    HG02630 haplotype2-0000168
+    HG02647 haplotype1-0000013
+    HG02698 haplotype1-0000005
+    HG02886 haplotype2-0000218
+    HG03139 haplotype1-0000006
+    HG03195 haplotype1-0000017
+    HG03540 haplotype1-0000033
+    HG03669 haplotype2-0000122
+    HG03710 haplotype1-0000002
+    HG03710 haplotype2-0000091
+    HG03831 haplotype2-0000100
+    HG03831 haplotype1-0000014
+    HG03927 haplotype2-0000139
+    HG03927 haplotype2-0000130
+    HG04184 haplotype2-0000057
+    HG04184 haplotype1-0000002
