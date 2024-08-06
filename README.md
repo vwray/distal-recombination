@@ -69,6 +69,24 @@ Once a particular region, say region A, is extracted from each haplotype, we can
 # Building Phylogenetic Trees
 Once the MSA is obtained, we can infer a phylogenetic tree using [IQ-TREE](http://www.iqtree.org/), which uses maximum likelihood. Gaps are treated as unknown characters, i.e. no information. Use the script [run_iqtree.sh](tree/run_iqtree.sh), passing in the alignment obtained from mafft.
 
-# Future Work
+# Interesting Papers
 This paper looks relevant to what we are seeing happen with potential haplotype blocks in the distal junction (DJ): https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10097779/
 See the section, "Comparative analyses of the proximal 100 kb end of human DJ sequence."
+
+# Next Steps
+Next steps for this project are:
+1. Run an ARG method on the DJ MSA (use scripts [here](https://github.com/vwray/args/tree/main/scripts/run)).
+2. Run an ARG method on regions A and B combined (use scripts [here](https://github.com/vwray/args/tree/main/scripts/run)).
+3. Estimate recombination rates on each region (use ARG, or find a way to estimate recombination rate directly from MSA).
+4. Determine recombination hotspots on each region (use ARG or MSA).
+5. Include satellites into the analysis (get ideas from T2T acro group).
+6. Look more into the DJ MSA. Use the [get_msa_statistics.py](alignment/get_msa_statistics.py) script as a starting point to get all positions with say 25 sequences with mutations, see if it is the same 25 sequences with mutations at each of those positions. Assign haplotypes to groups based on similarity, being identical on the first haplotype block. Label by frequencies (horizontal lines in frequency plot). Put haplotypes into buckets based on their mutation at each position. Compare buckets at different positions.
+7. Try to get better color contrast in circular tree plots ([plotTrees.r](./scripts/plotTrees.r) and [plotSmallTrees.r](./scripts/plotSmallTrees.r))
+8. Check if region C exists in bonobo (use [incorporateBonoto.sh](scripts/incorporateBonobo.sh))
+9. Create a circular tree plot incorporating a sampling of haplotypes from region B and C combined.
+10. Check on the haplotypes I was not able to extract a good Region A or DJ from; try to include these if they have the region. For DJ, take the 10kb window bordering rDNA and see if it's there in the sequence; this should be unique.
+11. Create a moddotplot for the "bad" DJ extractions.
+12. Try rebuilding an MSA without African samples.
+13. Compare distal bits I've extracted to ones from the reoriented assembly files; if different, switch to using the reoriented assembly files.
+14. Incorporate HPRC haplotypes that do not have 'rdna' found in the assembly file but do have DJ present. Look for DJ instead of rDNA in the assemblies.
+15. Compare GC content with DJ.
