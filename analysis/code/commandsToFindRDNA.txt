@@ -39,8 +39,11 @@ HPRC distal bit sequences:
 Extractions of regions A, B, C, and D, including MSAs and tree files:
 /data/Phillippy2/projects/acro_comparisons/hprc/distal/extract_regions
 
-Pdf and png plots of results:
+Pdf plots of results (also in plots folder on shared drive):
 /data/Phillippy2/projects/acro_comparisons/hprc/distal/plots
+
+File containing list of haps that contain all regions A, B, C, and DJ:
+/data/Phillippy2/t2t-share/distal-recombination/hapsContainingAllRegions.txt
 
 Here is a fasta file containing all the distal bit sequences I have taken from hprc assemblies:
 /data/Phillippy2/t2t-share/distal-recombination/all_distal_sequences.fna

@@ -25,3 +25,23 @@ for file in `cat good_${region}.txt`; do
     echo -e ${file}"\t"${start}"\t"${end}"\t"${region}_${pop}_${superpop} >> ${sharedDir}/hprc_distal_regions.bed
     #cat bed/*${file}.bed >> $bedDir/${genomeName}.bed
 done
+
+#check which haps I have all 4 regions for
+sharedDir=/data/Phillippy2/t2t-share/distal-recombination
+cd /data/Phillippy2/projects/acro_comparisons/hprc/distal/sequences
+for file in `ls distal_*.fna`; do
+    genomeName=$(echo ${file%.fna} | cut -d '_' -f2)
+    chrName=$(echo ${file%.fna} | cut -d '_' -f3)
+    hapName=$(echo ${file%.fna} | cut -d '_' -f4)
+    echo $hapName
+
+    regA=$(cat ${sharedDir}/hprc_distal_regions.bed | grep ${file%.fna} | grep regionA)
+    echo $regA
+    regB=$(cat ${sharedDir}/hprc_distal_regions.bed | grep ${file%.fna} | grep regionB)
+    regC=$(cat ${sharedDir}/hprc_distal_regions.bed | grep ${file%.fna} | grep regionC)
+    dj=$(cat ${sharedDir}/hprc_distal_regions.bed | grep ${file%.fna} | grep DJ)
+
+    if [[ -n $regA && -n $regB && -n $regC && -n $dj ]]; then
+        echo ${file%.fna} >> $sharedDir/hapsContainingAllRegions.txt
+    fi
+done
