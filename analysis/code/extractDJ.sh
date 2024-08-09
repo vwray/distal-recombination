@@ -594,4 +594,34 @@ module load snp-sites
 cd /data/wrayva/output/extract_regions/DJ/50random/mafft
 snp-sites -v -o mafft_DJ_vcf.vcf mafft_DJ.aln
 
-cat /data/wrayva/output/extract_regions/DJ/50random/mafft/mafft_DJ_vcf.vcf
+cat /data/wrayva/output/extract_regions/DJ/50random/mafft/mafft_DJ_vcf.vcf | head -n10
+cat /data/wrayva/output/extract_regions/DJ/50random/mafft/mafft_DJ.aln | head -n2 | tail -n1 | cut -c-500
+
+
+#!/bin/bash
+set -e
+numberOfSamples=51
+diploidSamples=51
+sequenceLength="366_818"
+sequenceLenInt=366818
+recombRate=1e-8
+mutationRate=1.2e-8
+baseDirectory="/data/wrayva/gitRepos/args"
+scriptRepo="${baseDirectory}/scripts"
+rentPlusDir=/data/wrayva/gitRepos/RentPlus
+
+outputDirectory=/data/wrayva/output/extract_regions/DJ/50random/args/2024-08-06T13:38:39_366_818
+
+vcf_file=/data/wrayva/output/extract_regions/DJ/50random/mafft/mafft_DJ_vcf.vcf
+
+#run RENT+ with branch lengths
+cd ${outputDirectory}
+module load java
+java -Xmx24g -jar $rentPlusDir/RentPlus.jar -t rentOutput.txt
+
+cd /data/wrayva/output/extract_regions/DJ/50random/args
+sbatch --time=8:00:00 --mem=32g --cpus-per-task=20 run_rentPlus.sh
+#32331350
+
+
+Rscript $scriptDir/plotSmallTrees.r rentTree10kb.txt rentTree10kb.pdf rentTree10kb2.pdf

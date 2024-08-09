@@ -82,7 +82,7 @@ Next steps for this project are:
 5. Include satellites into the analysis (get ideas from T2T acro group).
 6. Look more into the DJ MSA. Use the [get_msa_statistics.py](alignment/get_msa_statistics.py) script as a starting point to get all positions with say 25 sequences with mutations, see if it is the same 25 sequences with mutations at each of those positions. Assign haplotypes to groups based on similarity, being identical on the first haplotype block. Label by frequencies (horizontal lines in frequency plot). Put haplotypes into buckets based on their mutation at each position. Compare buckets at different positions.
 7. Try to get better color contrast in circular tree plots ([plotTrees.r](./scripts/plotTrees.r) and [plotSmallTrees.r](./scripts/plotSmallTrees.r))
-8. Check if region C exists in bonobo (use [incorporateBonoto.sh](scripts/incorporateBonobo.sh))
+8. Check if region C exists in bonobo (use [incorporateBonobo.sh](scripts/incorporateBonobo.sh))
 9. Create a circular tree plot incorporating a sampling of haplotypes from region B and C combined.
 10. Check on the haplotypes I was not able to extract a good Region A or DJ from; try to include these if they have the region. For DJ, take the 10kb window bordering rDNA and see if it's there in the sequence; this should be unique.
 11. Create a moddotplot for the "bad" DJ extractions.
@@ -90,3 +90,8 @@ Next steps for this project are:
 13. Compare distal bits I've extracted to ones from the reoriented assembly files; if different, switch to using the reoriented assembly files.
 14. Incorporate HPRC haplotypes that do not have 'rdna' found in the assembly file but do have DJ present. Look for DJ instead of rDNA in the assemblies.
 15. Compare GC content with DJ.
+16. Annotate the HPRC distal bits with where each segdup and satellite is, which ones are missing, etc.
+17. Build pangenome graph on the HPRC distal bits in order to align the sequences in a way that allows for non-colinearity.
+18. Validate that the chromosome assignments on the HPRC data are correct. Use FISH analysis to highlight region A, etc.
+19. Try removing satellite from region B and aligning the rest without the satellite.
+20. Try checking if the last section of region A has a similar tree to the first section of region B. If yes, then maybe no recombination has happened in the satellite between. If no, then recombination has happened in the satellite between.

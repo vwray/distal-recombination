@@ -20,18 +20,93 @@ Distal bit sequences, trimmed at 1Mb gap but no other trimming, sequence identif
 Distal junction:
 /data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/mask_DJ_5S_rDNA_PHR/DJ.fa
 
-Bed files containing distal junction locations:
-/data/wrayva/output/extract_regions/DJ/
-
-Distal junction extracted sequences:
-/data/wrayva/output/extract_regions/DJ/sequences
-
 Satellite annotations:
 CHM13 github readme, repeat annotations:
 https://github.com/marbl/CHM13?tab=readme-ov-file#repeat-annotation
 
 Satellite annotation bed file (linked on the above page):
 https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_censat_v2.1.bed
+
+HPRC distal bit annotations (currently just DJ and telomere) in bed files, also lengths.txt containing each distal bit length:
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/bed
+
+Minimap paf file from aligning HPRC distal bits against CHM13 chromosome 22 with satellites masked:
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/minimap
+
+HPRC distal bit sequences:
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/sequences
+
+Extractions of regions A, B, C, and D, including MSAs and tree files:
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/extract_regions
+
+Pdf and png plots of results:
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/plots
+
+Here is a fasta file containing all the distal bit sequences I have taken from hprc assemblies:
+/data/Phillippy2/t2t-share/distal-recombination/all_distal_sequences.fna
+These have been reoriented so that the short arm comes first, and they include some telomere at the beginning and rDNA at the end. The sequence identifiers contain genome name, chromosome, and haplotype formatted like distal_HG02922_chr14_haplotype1-0000009 where the haplotype identifier at the end came from the verrko hi c assemblies, which may differ from what is in your assemblies if yours are trio assemblies.
+Here is a bed file containing region A, B, C, and D coordinates for each of the haplotypes in the above fasta file with the same sequence identifiers in column 1 and containing region name, population, and super population in column 4:
+data/Phillippy2/t2t-share/distal-recombination/hprc_distal_regions.bed
+Some of the regions are not present in the bed file for some of the haplotypes that either do not contain the region, or my script was just not able to properly identify/extract the region based on the minimap2 output. For the region B that I have mentioned as corresponding to ct_22_2 through ct_22_5 on CHM13 chromosome 22, I have annotated this as regionB2_ct_22_2-ct_22_5 in column 4. We also looked at just extracting the region corresponding to ct_22_5 since some of the small satellites in the middle were causing issues with the alignment, so I have annotated those coordinates with regionB_ct_22_5 . Example below:
+distal_HG02922_chr22_haplotype2-0000098	258495	368192	regionB_ct_22_5_ESN_AFR
+distal_HG02922_chr22_haplotype2-0000098	189514	368192	regionB2_ct_22_2-ct_22_5_ESN_AFR
+
+
+[wrayva@cn4268 regionB2]$ mkdir /data/Phillippy2/t2t-share/distal-recombination
+[wrayva@cn4268 regionB2]$ mkdir /data/Phillippy2/t2t-share/distal-recombination/regionA
+[wrayva@cn4268 regionB2]$ mkdir /data/Phillippy2/t2t-share/distal-recombination/regionB_ct_22_2-ct_22_5
+[wrayva@cn4268 regionB2]$ mkdir /data/Phillippy2/t2t-share/distal-recombination/regionB_ct_22_5
+[wrayva@cn4268 regionB2]$ mkdir /data/Phillippy2/t2t-share/distal-recombination/regionC
+[wrayva@cn4268 regionB2]$ mkdir /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ
+
+[wrayva@cn4268 50random]$ ls /data/Phillippy2/t2t-share/distal-recombination/regionA
+hprc_50random.fna		       msa_50random.fna				tree_50random.treefile
+hprc_regionA.fna		       msa_allRegionA.fna			tree_allRegionA.treefile
+hprc_regionA_with_chr4_and_bonobo.fna  msa_allRegionA_with_chr4_and_bonobo.fna	tree_allRegionA_with_chr4_and_bonobo.treefile
+
+
+cp mafft_DJ_1-10000.aln /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/msa_50random_with_bonobo_0-10kb.fna
+cp mafft_DJ_10000-20000.aln /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/msa_50random_with_bonobo_10-20kb.fna
+cp mafft_DJ_20000-30000.aln /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/msa_50random_with_bonobo_20-30kb.fna
+cp mafft_DJ_30000-40000.aln /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/msa_50random_with_bonobo_30-40kb.fna
+cp mafft_DJ_40000-50000.aln /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/msa_50random_with_bonobo_40-50kb.fna
+
+cp mafft_DJ_1-10000_copy.aln.treefile /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/tree_50random_with_bonobo_0-10kb.treefile
+cp mafft_DJ_10000-20000_copy.aln.treefile /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/tree_50random_with_bonobo_10-20kb.treefile
+cp mafft_DJ_20000-30000_copy.aln.treefile /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/tree_50random_with_bonobo_20-30kb.treefile
+cp mafft_DJ_30000-40000_copy.aln.treefile /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/tree_50random_with_bonobo_30-40kb.treefile
+cp mafft_DJ_40000-50000_copy.aln.treefile /data/Phillippy2/t2t-share/distal-recombination/regionD_DJ/tree_50random_with_bonobo_40-50kb.treefile
+
+
+Bed files
+/data/Phillippy2/projects/acro_comparisons/hprc/distal/bed
+
+Compare to /data/Phillippy2/projects/acro_comparisons/hprc/distal/extract_regions/DJ/bed/
+They're different. Should go by the ones in extract_regions/DJ/bed/, but only the "good" ones.
+
+
+
+
+
+
+To remove from output folder:
+alns
+bed
+chm13ref
+mashmap_rdna
+minimap_chm13chr22masked
+minimap_dj
+minimap_rdna
+moddotplot
+NAdistalbits
+trim_rdna
+trim_telo
+wfmash_on_trimmed_to_chm13
+extract_regions/regionA2/good_sequences
+
+To copy over to /data/Phillippy2/projects/acro_comparisons/hprc/distal/:
+
+
 
 
 #Below is supposed to find number of gaps and where they are in assembly.fasta file. Is having an error: Error: line number 2197554 of file - has 2 fields, but 6 were expected.
