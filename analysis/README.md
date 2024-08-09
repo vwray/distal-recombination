@@ -1,4 +1,76 @@
-This document contains details on the analysis I have run as part of this project.
+This document contains details on the analysis I have run as part of this project, as well as directories of results and data.
+
+## Directories
+#### Distal bits of chm13:
+`/data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits`
+
+#### Masked distal bits of chm13:
+`/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs`
+
+#### Assemblies:
+`/data/Phillippy2/projects/hprc-assemblies/assemblies-v3/`
+
+#### Distal junction:
+`/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/mask_DJ_5S_rDNA_PHR/DJ.fa`
+
+#### Text file mapping genome sample to sub population:
+This is used by scripts such as [alignAndCreateTrees50Random.sh](scripts/alignAndCreateTrees50Random.sh) for plotting the trees that are colored by population and include population labels.
+
+`/data/Phillippy2/projects/acro_comparisons/hprc/distal/populations.csv`
+
+#### Text file mapping superpopulations mapped to sub populations
+This is used by scripts such as [alignAndCreateTrees50Random.sh](scripts/alignAndCreateTrees50Random.sh) for plotting the trees that are colored by population and include population labels.
+
+`/data/nhansen/T2T_Globus_NFH_Archive/AnVIL_3202_samples/allele_frequencies/superpopulations.txt`
+
+#### Base project directory:
+`/data/Phillippy2/projects/acro_comparisons/hprc/distal/`
+
+#### Minimap paf file from aligning HPRC distal bits against CHM13 chromosome 22 with satellites masked:
+`/data/Phillippy2/projects/acro_comparisons/hprc/distal/minimap`
+
+#### HPRC distal bit sequences:
+These have been reoriented so that the short arm comes first, and they include some telomere at the beginning and rDNA at the end. The sequence identifiers contain genome name, chromosome, and haplotype formatted like distal_HG02922_chr14_haplotype1-0000009 where the haplotype identifier at the end came from the verrko hi c assemblies, which may differ from the trio assemblies.
+
+`/data/Phillippy2/projects/acro_comparisons/hprc/distal/sequences`
+
+##### HPRC distal bit sequences on T2T shared drive, all in one file:
+`/data/Phillippy2/t2t-share/distal-recombination/all_distal_sequences.fna`
+
+#### Bed file on T2T shared drive containing list of haps that contain all regions A, B, C, and DJ:
+Here is a bed file containing region A, B, C, and D coordinates for each of the haplotypes in the above fasta file with the same sequence identifiers in column 1 and containing region name, population, and super population in column 4
+
+`/data/Phillippy2/t2t-share/distal-recombination/hapsContainingAllRegions.txt`
+
+Some of the regions are not present in the bed file for some of the haplotypes that either do not contain the region, or my script was just not able to properly identify/extract the region based on the minimap2 output. For the region B that I have mentioned as corresponding to ct_22_2 through ct_22_5 on CHM13 chromosome 22, I have annotated this as regionB2_ct_22_2-ct_22_5 in column 4. We also looked at just extracting the region corresponding to ct_22_5 since some of the small satellites in the middle were causing issues with the alignment, so I have annotated those coordinates with regionB_ct_22_5 . Example below:
+```
+distal_HG02922_chr22_haplotype2-0000098	258495	368192	regionB_ct_22_5_ESN_AFR
+distal_HG02922_chr22_haplotype2-0000098	189514	368192	regionB2_ct_22_2-ct_22_5_ESN_AFR
+```
+
+#### Extractions of regions A, B, C, and D, including MSAs and tree files:
+`/data/Phillippy2/projects/acro_comparisons/hprc/distal/extract_regions`
+
+#### Extractions of regions A, B, C, and D, including MSAs and tree files on T2T shared drive:
+Each region corresponds to a directory within here, containing a fasta file of all the extracted region from the HPRC data, a fasta file containing a random sample of 50 sequences (10 from each population), a fasta file with bonobo sample exracted from the region included, multiple sequence alignments generated from mafft for each of the fasta files, and tree files generated from IQ-TREE2 for each of the MSAs.
+
+`/data/Phillippy2/t2t-share/distal-recombination`
+
+Note that the `regionB_ct_22_5` contains region B results just considering region B to be the smaller segment corresponding to ct_22_5 on CHM13 chromosome 22, while `regionB_ct_22_2-ct_22_5` considers region B to be the whole segment containing everything from ct_22_2 to ct_22_5.
+
+#### Pdf plots of results:
+`/data/Phillippy2/projects/acro_comparisons/hprc/distal/plots`
+
+#### Pdf plots of results on T2T shared drive:
+`/data/Phillippy2/t2t-share/distal-recombination/plots`
+
+## Links
+#### Satellite annotations:
+CHM13 github readme, repeat annotations:
+https://github.com/marbl/CHM13?tab=readme-ov-file#repeat-annotation
+
+#### Satellite annotation bed file (linked on the above page):
+https://s3-us-west-2.amazonaws.com/human-pangenomics/T2T/CHM13/assemblies/annotation/chm13v2.0_censat_v2.1.bed
 
 ## Trimming telomere
 The below command runs over fasta files in a directory, finds the position where the telomere ends on each sequence, and trims the sequence from this position.
@@ -172,6 +244,21 @@ conda activate dfv
 cd /data/wrayva/gitRepos/ModDotPlot
 moddotplot static -f /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.upper.fa /data/wrayva/output/sequences/distal_HG03831_chr14_haplotype1-0000003.fna -o /data/wrayva/output/moddotplot/HG03831_chr14_haplotype1-0000003 --compare
 ```
+
+### Interactive ModDotPlot
+Similar to the above, but in interactive mode where the plot is generated in a browser and you can zoom in, the x and y labels are correct, legend shows, and quality is better.
+First, create tunnel from biowulf:
+```bash
+sinteractive --tunnel
+```
+Follow the instructions to paste the output given into a new terminal and sign into biowulf there. This is what creates the tunnel. Then run the following in the biowulf interactive session:
+
+```bash
+cd /data/wrayva/gitRepos/ModDotPlot
+source venv/bin/activate
+moddotplot interactive -f /data/Phillippy2/projects/acro_comparisons/refs/chm13/distal_bits/chr22.distal.upper.fa /data/wrayva/output/sequences/distal_HG02486_chr15_haplotype2-0000092.fna -o /data/wrayva/output/moddotplot/interactive --compare-only --port $PORT1
+```
+At the end, a link will be given that should be pasted into a local browser to view the ModDotPlot.
 
 ##Python
 
