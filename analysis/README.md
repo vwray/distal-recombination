@@ -7,8 +7,17 @@ This document contains details on the analysis I have run as part of this projec
 #### Masked distal bits of chm13:
 `/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/distal_masked_refs`
 
-#### Assemblies:
+#### rDNA (chm13 chr21):
+`/vf/users/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/rdna_unit/chm13.chr21_rdna_array.fa`
+
+#### rDNA rotated reference:
+`/vf/users/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/rdna_unit/KY962518-ROT.fa`
+
+#### Assemblies (version 3):
 `/data/Phillippy2/projects/hprc-assemblies/assemblies-v3/`
+
+#### Assemblies (version 4):
+`/data/Phillippy2/projects/hprc-assemblies/assemblies-v4-best-per-sample`
 
 #### Distal junction:
 `/data/Phillippy2/projects/chm13_rdna_methylation_reanalysis/refs/beds_for_rpc/mask_DJ_5S_rDNA_PHR/DJ.fa`
