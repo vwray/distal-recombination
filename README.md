@@ -73,14 +73,22 @@ Once the MSA is obtained, we can infer a phylogenetic tree using [IQ-TREE](http:
 - For aligning and creating circular trees on a subset of haplotypes for one particular region:
   - [alignAndCreateTrees50Random.sh](scripts/alignAndCreateTrees50Random.sh) selects 10 random haplotypes from each of the 5 superpopulations, collects the sequences into one fasta file, runs mafft to align, runs IQ-TREE to build a phylogenetic tree, renames the haplotypes to have population in their identifiers, and runs [scripts/plotTrees.r](scripts/plotTrees.r) to plot the tree in a circular format colored by population and by chromosome. Also chops up the MSA into segments and creates the trees on each segment.
   - [alignAndCreateTrees50Random2.sh](scripts/alignAndCreateTrees50Random2.sh) selects 10 random haplotypes from each of the 5 superpopulations, collects the sequences into one fasta file, runs mafft to align, runs IQ-TREE to build a phylogenetic tree, renames the haplotypes to have population in their identifiers, and runs [scripts/plotTrees.r](scripts/plotTrees.r) to plot the tree in a circular format colored by population and by chromosome. Set up to be run as a batch script on Biowulf.
+  - [smallTreeForPoster.sh](analysis/code/smallTreeForPoster.sh) creates presentable tree for a poster.
 - For aligning and creating circular trees on all haplotypes for one particular region:
   - [alignAndCreateTreesWithBonobo.sh](scripts/alignAndCreateTreesWithBonobo.sh) incorporates bonobo into the multiple sequence alignment of all haplotypes (filtered on expected length) and creates a tree.
 - For chunking an MSA, running IQ-Tree on segments, and plotting RF distance between neighboring trees:
-  - [chunk_msa_run_iqtree_plot_rfdist.sh](scripts/chunk_msa_run_iqtree_plot_rfdist.sh) submits a swarm of jobs to run IQ-Tree on segments of the MSA in parallel, and then plots RF distance using [computeRFDistance.r](scripts/computeRFDistance.r). 
+  - [chunk_msa_run_iqtree_plot_rfdist.sh](scripts/chunk_msa_run_iqtree_plot_rfdist.sh) submits a swarm of jobs to run IQ-Tree on segments of the MSA in parallel, and then plots RF distance using [computeRFDistance.r](scripts/computeRFDistance.r).
+- For creating a bed file with info about the haplotypes:
+  - [compileBedFiles.sh](analysis/code/compileBedFiles.sh) 
 - For creating a spreadsheet of coordinates of telomere, rDNA, and gaps for distal samples: 
   - [fillOutSpreadsheet.sh](scripts/fillOutSpreadsheet.sh): More info in [v4documentation/README.md](v4documentation/README.md)
 - V4 assembly analysis:
   - [rerunAnalysisWithV4Assemblies.sh](scripts/rerunAnalysisWithV4Assemblies.sh): working script for rerunning analysis with V4 assemblies. Extracts acrocentric distal sequences and fills out spreadsheet using script above.
+- Working scripts that I was working off of for the V3 assembly analysis:
+  - [extractDJ.sh](analysis/code/extractDJ.sh)
+  - [extractRegionA.sh](analysis/code/extractRegionA.sh)
+  - [extractRegionB.sh](analysis/code/extractRegionB.sh)
+  - [extractRegionC.sh](analysis/code/extractRegionC.sh)
 
 # Interesting Papers
 This paper looks relevant to what we are seeing happen with potential haplotype blocks in the distal junction (DJ): https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10097779/
